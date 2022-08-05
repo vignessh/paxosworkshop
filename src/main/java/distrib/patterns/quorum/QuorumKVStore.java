@@ -19,15 +19,14 @@ import java.util.Map;
 
 public class QuorumKVStore {
     public static final int firstGeneration = 1;
-    private static Logger logger = LogManager.getLogger(QuorumKVStore.class);
+    private static final Logger logger = LogManager.getLogger(QuorumKVStore.class);
     private final NIOSocketListener clientListener;
-    private SystemClock clock;
-    private Config config;
-    private InetAddressAndPort clientConnectionAddress;
-    private InetAddressAndPort peerConnectionAddress;
-    private List<InetAddressAndPort> peers;
-    private SocketListener peerListener;
-
+    private final SystemClock clock;
+    private final Config config;
+    private final InetAddressAndPort clientConnectionAddress;
+    private final InetAddressAndPort peerConnectionAddress;
+    private final List<InetAddressAndPort> peers;
+    private final SocketListener peerListener;
     Map<String, StoredValue> kv = new HashMap<>();
 
     public void dropMessagesTo(QuorumKVStore clusterNode) {
@@ -136,10 +135,16 @@ public class QuorumKVStore {
     }
 
     private void handleSetValueRequest(RequestOrResponse request) {
-        int maxKnownGeneration = maxKnownGeneration();
-        Integer requestGeneration = request.getGeneration();
+        var maxKnownGeneration = maxKnownGeneration();
+        var requestGeneration = request.getGeneration();
         //TODO: Assignment 3 Add check for generation while handling requests.
-        SetValueRequest setValueRequest = deserialize(request, SetValueRequest.class);
+        if (requestGeneration < maxKnownGeneration) {
+            var errorMessage = "Rejecting request from generation " + requestGeneration + " as already accepted from generation " + maxKnownGeneration;
+            sendResponseMessage(new RequestOrResponse(requestGeneration, RequestId.SetValueResponse.getId(), errorMessage.getBytes(), request.getCorrelationId(), peerConnectionAddress), request.getFromAddress());
+            return;
+        }
+
+        var setValueRequest = deserialize(request, SetValueRequest.class);
         kv.put(setValueRequest.getKey(), new StoredValue(setValueRequest.getKey(), setValueRequest.getValue(), clock.now(), requestGeneration));
         sendResponseMessage(new RequestOrResponse(requestGeneration, RequestId.SetValueResponse.getId(), "Success".getBytes(), request.getCorrelationId(), peerConnectionAddress), request.getFromAddress());
     }

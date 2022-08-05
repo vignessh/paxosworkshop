@@ -33,6 +33,7 @@ public class DurableKVStore {
     public DurableKVStore(Config config) {
         this.config = config;
         this.wal = WriteAheadLog.openWAL(config);
+        applyLog();
        //TODO: applyLog at startup.
         applyLog();
     }
@@ -45,8 +46,7 @@ public class DurableKVStore {
     private void applyEntries(List<WALEntry> walEntries) {
         for (WALEntry walEntry : walEntries) {
             Command command = deserialize(walEntry);
-            if (command instanceof SetValueCommand) {
-                SetValueCommand setValueCommand = (SetValueCommand) command;
+            if (command instanceof SetValueCommand setValueCommand) {
                 kv.put(setValueCommand.key, setValueCommand.value);
             }
         }

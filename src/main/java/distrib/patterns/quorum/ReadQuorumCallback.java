@@ -66,13 +66,12 @@ class ReadQuorumCallback implements RequestCallback<RequestOrResponse> {
 
     private RequestOrResponse createSetValueRequest(String key, String value) {
         SetValueRequest setValueRequest = new SetValueRequest(key, value);
-        RequestOrResponse requestOrResponse = new RequestOrResponse(RequestId.SetValueRequest.getId(),
+        return new RequestOrResponse(RequestId.SetValueRequest.getId(),
                 JsonSerDes.serialize(setValueRequest), correlationId++);
-        return requestOrResponse;
     }
 
     private List<InetAddressAndPort> getNodesHavingStaleValues(long latestTimestamp) {
-        return responses.entrySet().stream().filter(e -> e.getValue().getTimestamp() < latestTimestamp).map(e -> e.getKey()).collect(Collectors.toList());
+        return responses.entrySet().stream().filter(e -> e.getValue().getTimestamp() < latestTimestamp).map(Map.Entry::getKey).collect(Collectors.toList());
     }
 
     private String pickLatestValue() {
